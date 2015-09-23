@@ -4,10 +4,10 @@ matorque submits jobs to a Torque cluster via an SSH connection to the head node
 
 ## Examples
 
-Run 3 instances of function `myfun` with arguments `('hello', 1)`, `('world', 2)`, `('!', 3)`:
+Run 3 instances of function `examplefun` with arguments `('hello', 1)`, `('world', 2)`, `('!', 3)`:
 
 ```matlab
->> job = TorqueJob('myfun', {{'hello', 1}, {'world', 2}, {'!', 3}})
+>> job = TorqueJob('examplefun', {{'hello', 1}, {'world', 2}, {'!', 3}})
 Connecting to server...
 Copying dependencies to server...
 Submitting tasks...

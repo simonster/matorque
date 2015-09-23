@@ -77,14 +77,13 @@ else
             ssh2_struct.authenticated = ssh2_struct.connection.authenticateWithPassword(...
             ssh2_struct.username,ssh2_struct.password);
         end
-
-
-        if(~ssh2_struct.authenticated)
-            error('Error: SSH2 could not authenticate the connection!');
-        end
-    catch 
+    catch err
         error('Error: SSH2 could not connect to the ssh2 host - "%s"!',...
                 ssh2_struct.hostname);
+    end
+
+    if(~ssh2_struct.authenticated)
+        error('SSH2:auth', 'Error: SSH2 could not authenticate the connection!');
     end
 end
 

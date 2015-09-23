@@ -49,25 +49,38 @@ methods
         % Get password
         matorque_config;
         [username, password] = self.credentials(false);
-        config = self.sshconfig();
-        config.hostname = HOST;
-        config.username = username;
-        config.password = password;
-        
-        % Connect to server and create a directory to hold our files
         fprintf('Connecting to server...\n');
         self.dir = sprintf('jobs/%d', randi(10^10)-1);
-        [self.conn, ~] = ssh2_command(config, ['mkdir -p ' self.dir]);
+        while isempty(self.conn)
+            config = self.sshconfig();
+            config.hostname = HOST;
+            config.username = username;
+            config.password = password;
+
+            % Connect to server and create a directory to hold our files
+            try
+                [self.conn, ~] = ssh2_command(config, ['mkdir -p ' self.dir]);
+            catch err
+                if strcmp(err.identifier, 'SSH2:auth')
+                    disp('Incorrect username or password.');
+                    [username, password] = self.credentials(true);
+                else
+                    rethrow(err)
+                end
+            end
+        end
         
         % Copy dependencies to server
         fprintf('Copying dependencies to server...\n');
         deps = matlab.codetools.requiredFilesAndProducts(funcname);
-        remote_names = cell(1, numel(deps));
-        for i = 1:length(deps)
-            [~, name, ext] = fileparts(deps{i});
-            remote_names{i} = [name ext];
+        if ~isempty(deps)
+            remote_names = cell(1, numel(deps));
+            for i = 1:length(deps)
+                [~, name, ext] = fileparts(deps{i});
+                remote_names{i} = [name ext];
+            end
+            scp_put(self.conn, deps, self.dir, '/', remote_names);
         end
-        scp_put(self.conn, deps, self.dir, '/', remote_names);
         
         % Start jobs
         fprintf('Submitting tasks...\n');
