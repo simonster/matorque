@@ -1,3 +1,3 @@
 USERNAME = '';
 
-HOST = 'millerlab.mit.edu';
+HOST = 'millerdata.mit.edu';
