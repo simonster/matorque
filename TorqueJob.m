@@ -61,7 +61,7 @@ methods
         
         % Copy dependencies to server
         fprintf('Copying dependencies to server...\n');
-        deps = cellfun(@which, mydepfun(funcname, true), 'UniformOutput', false);
+        deps = matlab.codetools.requiredFilesAndProducts(funcname);
         remote_names = cell(1, numel(deps));
         for i = 1:length(deps)
             [~, name, ext] = fileparts(deps{i});
