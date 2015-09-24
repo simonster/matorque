@@ -29,10 +29,11 @@ job =
     status: 'queued'
 ```
 
-You can also specify PBS directives as the second argument. Please do this! You might want something like:
+You can also specify PBS directives as the third argument. Please do this! You might want something like:
 
 ```
->> job = TorqueJob('examplefun', {{'hello', 1}, {'world', 2}, {'!', 3}}, 'walltime=2:00:00,mem=8GB')
+>> job = TorqueJob('examplefun', {{'hello', 1}, {'world', 2}, {'!', 3}}, ...
+                   'walltime=2:00:00,mem=8GB')
 ```
 
 to specify that the job will take two hours (if it takes longer, it will be killed) and that it will consume 8 GB of memory.
