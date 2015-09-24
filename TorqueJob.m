@@ -168,7 +168,10 @@ methods
         else
             lastslash = lastslash + 1;
         end
-        contents = load(fullfile(tmp, fname(lastslash:end)));
+        mfile = fullfile(tmp, fname(lastslash:end));
+        contents = load(mfile);
+        delete(mfile);
+        rmdir(tmp);
         out = contents.out;
     end
     
