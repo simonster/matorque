@@ -21,10 +21,10 @@ job =
     status: 'queued'
 ```
 
-Get output from task 1:
+Get printed output from task 1:
 
 ```matlab
->> job.tasks{1}.output
+>> job.tasks{1}.diary
 
 ans =
 

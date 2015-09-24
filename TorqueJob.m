@@ -50,7 +50,7 @@ methods
         matorque_config;
         [username, password] = self.credentials(false);
         fprintf('Connecting to server...\n');
-        self.dir = sprintf('jobs/%d', randi(10^10)-1);
+        self.dir = sprintf('jobs/%d', randi(2^53-1));
         while isempty(self.conn)
             config = self.sshconfig();
             config.hostname = HOST;
@@ -84,14 +84,25 @@ methods
         
         % Start jobs
         fprintf('Submitting tasks...\n');
+        diaryfiles = cell(1, length(argstrs));
         outfiles = cell(1, length(argstrs));
         for i = 1:length(argstrs)
-            outfile = sprintf('%s/%d.out', self.dir, i);
+            diaryfile = sprintf('%s/%d_diary.txt', self.dir, i);
+            if nargout(funcname) == 0
+                outfile = [];
+                cmd = sprintf('addpath(''%s''); %s(%s);', ...
+                              self.dir, funcname, argstrs{i});
+            else
+                outfile = sprintf('%s/%d_output.mat', self.dir, i);
+                cmd = sprintf('addpath(''%s''); out = %s(%s); save(''%s'', ''out'');', ...
+                              self.dir, funcname, argstrs{i}, outfile);
+            end
             matlab_cmd = sprintf('matlab -nodisplay -singleCompThread -r %s -logfile %s >/dev/null 2>&1', ...
-                self.shellesc(sprintf('addpath(''%s''); %s(%s);', self.dir, funcname, argstrs{i})), ...
-                outfile);
+                self.shellesc(cmd), diaryfile);
+            diaryfiles{i} = diaryfile;
             outfiles{i} = outfile;
-            argstrs{i} = sprintf('echo %s | qsub -j oe -o /dev/null 2>&1', self.shellesc(matlab_cmd));
+            argstrs{i} = sprintf('echo %s | qsub -j oe -o /dev/null 2>&1', ...
+                                 self.shellesc(matlab_cmd));
         end
         cmd = strjoin(argstrs, sprintf('\n'));
         [~, result] = ssh2_command(self.conn, cmd);
@@ -103,7 +114,7 @@ methods
         % Create process objects
         procs = cell(1, numel(result));
         for i = 1:numel(result)
-            procs{i} = TorqueTask(self, result{i}, args{i}, outfiles{i});
+            procs{i} = TorqueTask(self, result{i}, args{i}, diaryfiles{i}, outfiles{i});
         end
         self.tasks = procs;
     end
@@ -141,9 +152,24 @@ methods
         end
     end
     
-    function contents = remotefile(self, fname)
-    %OBJ.REMOTEFILE(FNAME) Read a file from the head node
-        [~, contents] = ssh2_command(self.conn, ['cat ' fname]);
+    function out = readtxt(self, fname)
+    %OBJ.READTXT(FNAME) Read a text file from the head node
+        [~, out] = ssh2_command(self.conn, ['cat ' fname]);
+    end
+    
+    function out = readmat(self, fname)
+    %OBJ.READMAT(FNAME) Read a MAT file from the head node
+        tmp = tempname;
+        mkdir(tmp);
+        scp_get(self.conn, fname, tmp);
+        lastslash = find(fname == '/', 1, 'last');
+        if isempty(lastslash)
+            lastslash = 1;
+        else
+            lastslash = lastslash + 1;
+        end
+        contents = load(fullfile(tmp, fname(lastslash:end)));
+        out = contents.out;
     end
     
     function status = taskstatus(self, jobids)
