@@ -1,6 +1,9 @@
 classdef TorqueTask < handle
 properties(Access=private)
     job;
+    isdone;
+    saveddiary;
+    savedoutput;
 end
 
 properties(SetAccess=private)
@@ -8,10 +11,8 @@ properties(SetAccess=private)
     arguments;
     diaryfile;
     outfile;
-    isdone;
-    saveddiary;
-    savedoutput;
 end
+
 
 properties(Dependent)
     diary;

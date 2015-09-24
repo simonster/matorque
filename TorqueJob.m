@@ -88,14 +88,14 @@ methods
         outfiles = cell(1, length(argstrs));
         for i = 1:length(argstrs)
             diaryfile = sprintf('%d_diary.txt', i);
+            preamble = sprintf('addpath(fullfile(pwd, ''%s''))', self.dir);
             if nargout(funcname) == 0
                 outfile = [];
-                cmd = sprintf('addpath(''%s''); %s(%s);', ...
-                              self.dir, funcname, argstrs{i});
+                cmd = sprintf('%s; %s(%s);', preamble, funcname, argstrs{i});
             else
                 outfile = sprintf('%d_output.mat', i);
-                cmd = sprintf('addpath(''%s''); out = %s(%s); save(''%s/%s'', ''out'');', ...
-                              self.dir, funcname, argstrs{i}, self.dir, outfile);
+                cmd = sprintf('%s; out = %s(%s); save(''%s/%s'', ''out'');', ...
+                              preamble, funcname, argstrs{i}, self.dir, outfile);
             end
             matlab_cmd = sprintf('matlab -nodisplay -singleCompThread -r %s -logfile %s/%s >/dev/null 2>&1', ...
                 self.shellesc(cmd), self.dir, diaryfile);
