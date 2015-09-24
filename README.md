@@ -21,7 +21,7 @@ job =
     status: 'queued'
 ```
 
-Get printed output from task 1:
+Get printed output (diary) from task 1:
 
 ```matlab
 >> job.tasks{1}.diary
@@ -38,6 +38,16 @@ To get started, type one of these: helpwin, helpdesk, or demo.
 For product information, visit www.mathworks.com.
  
 arg1 = hello; arg2 = 1
+```
+
+Get the return value from task 1:
+
+```matlab
+>> job.tasks{1}.output
+
+ans =
+
+hello
 ```
 
 Check whether tasks are complete (also available for individual tasks):
