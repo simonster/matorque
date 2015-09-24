@@ -87,18 +87,18 @@ methods
         diaryfiles = cell(1, length(argstrs));
         outfiles = cell(1, length(argstrs));
         for i = 1:length(argstrs)
-            diaryfile = sprintf('%s/%d_diary.txt', self.dir, i);
+            diaryfile = sprintf('%d_diary.txt', i);
             if nargout(funcname) == 0
                 outfile = [];
                 cmd = sprintf('addpath(''%s''); %s(%s);', ...
                               self.dir, funcname, argstrs{i});
             else
-                outfile = sprintf('%s/%d_output.mat', self.dir, i);
-                cmd = sprintf('addpath(''%s''); out = %s(%s); save(''%s'', ''out'');', ...
-                              self.dir, funcname, argstrs{i}, outfile);
+                outfile = sprintf('%d_output.mat', i);
+                cmd = sprintf('addpath(''%s''); out = %s(%s); save(''%s/%s'', ''out'');', ...
+                              self.dir, funcname, argstrs{i}, self.dir, outfile);
             end
-            matlab_cmd = sprintf('matlab -nodisplay -singleCompThread -r %s -logfile %s >/dev/null 2>&1', ...
-                self.shellesc(cmd), diaryfile);
+            matlab_cmd = sprintf('matlab -nodisplay -singleCompThread -r %s -logfile %s/%s >/dev/null 2>&1', ...
+                self.shellesc(cmd), self.dir, diaryfile);
             if exist('directives', 'var')
                 matlab_cmd = sprintf('#PBS -l %s\n%s', directives, matlab_cmd);
             end
@@ -109,7 +109,8 @@ methods
                                  self.shellesc(sprintf('%s_%d', funcname, i)));
         end
         cmd = strjoin(argstrs, sprintf('\n'));
-        [~, result] = ssh2_command(self.conn, cmd);
+        self.puttxt('command.sh', cmd);
+        [~, result] = ssh2_command(self.conn, sprintf('sh %s/command.sh', self.dir));
         
         % Check for errors
         err = numel(result) ~= numel(argstrs);
@@ -169,25 +170,29 @@ methods
     
     function out = readtxt(self, fname)
     %OBJ.READTXT(FNAME) Read a text file from the head node
-        [~, out] = ssh2_command(self.conn, ['cat ' fname]);
+        [~, out] = ssh2_command(self.conn, ['cat ' self.dir '/' fname]);
     end
     
     function out = readmat(self, fname)
     %OBJ.READMAT(FNAME) Read a MAT file from the head node
         tmp = tempname;
         mkdir(tmp);
-        scp_get(self.conn, fname, tmp);
-        lastslash = find(fname == '/', 1, 'last');
-        if isempty(lastslash)
-            lastslash = 1;
-        else
-            lastslash = lastslash + 1;
-        end
-        mfile = fullfile(tmp, fname(lastslash:end));
+        scp_get(self.conn, fname, tmp, self.dir);
+        mfile = fullfile(tmp, fname);
         contents = load(mfile);
         delete(mfile);
         rmdir(tmp);
         out = contents.out;
+    end
+    
+    function puttxt(self, fname, txt)
+    %OBJ.PUTTXT(FNAME) Put text in a file on the head node
+        tmp = tempname;
+        fid = fopen(tmp, 'w');
+        fwrite(fid, txt);
+        fclose(fid);
+        scp_put(self.conn, tmp, self.dir, '/', fname);
+        delete(tmp);
     end
     
     function status = taskstatus(self, jobids)
