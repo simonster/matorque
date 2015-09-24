@@ -1,10 +1,10 @@
 # matorque
 
-matorque submits jobs to a Torque cluster via an SSH connection to the head node. It attempts to automatically determine function dependencies so that there is no need to maintain a mirror of local and remote code. It is not yet stable and may be randomly broken, but I will try to fix bugs as they are reported.
+matorque submits jobs to a Torque cluster via an SSH connection to the head node. It attempts to automatically determine function dependencies so that there is no need to maintain a mirror of local and remote code.
 
 ## Examples
 
-Run 3 instances of function `examplefun` with arguments `('hello', 1)`, `('world', 2)`, `('!', 3)`:
+Run 3 instances of function `examplefun` with arguments `('hello', 1)` (for the first instance), `('world', 2)` (for the second), `('!', 3)` (for the third):
 
 ```matlab
 >> job = TorqueJob('examplefun', {{'hello', 1}, {'world', 2}, {'!', 3}})
