@@ -6,7 +6,7 @@ matorque submits jobs to a Torque cluster via an SSH connection to the head node
 
 Run 3 instances of function `examplefun` with arguments `('hello', 1)` (for the first instance), `('world', 2)` (for the second), `('!', 3)` (for the third):
 
-```matlab
+```
 >> job = TorqueJob('examplefun', {{'hello', 1}, {'world', 2}, {'!', 3}})
 Connecting to server...
 Copying dependencies to server...
@@ -23,7 +23,7 @@ job =
 
 Get printed output (diary) from task 1:
 
-```matlab
+```
 >> job.tasks{1}.diary
 
 ans =
@@ -42,7 +42,7 @@ arg1 = hello; arg2 = 1
 
 Get the return value from task 1:
 
-```matlab
+```
 >> job.tasks{1}.output
 
 ans =
@@ -52,7 +52,7 @@ hello
 
 Check whether tasks are complete (also available for individual tasks):
 
-```matlab
+```
 >> job.status
 
 ans =
@@ -62,6 +62,6 @@ done
 
 Kill tasks (also available for individual tasks):
 
-```matlab
+```
 >> job.kill()
 ```
