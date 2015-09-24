@@ -4,7 +4,15 @@ matorque submits jobs to a Torque cluster via an SSH connection to the head node
 
 ## Examples
 
-Run 3 instances of function `examplefun` with arguments `('hello', 1)` (for the first instance), `('world', 2)` (for the second), `('!', 3)` (for the third):
+To run:
+
+```
+examplefun('hello', 1)
+examplefun('world', 2)
+examplefun('!', 3)
+```
+
+in parallel on the cluster, use:
 
 ```
 >> job = TorqueJob('examplefun', {{'hello', 1}, {'world', 2}, {'!', 3}})
@@ -20,6 +28,14 @@ job =
      tasks: {[1x1 TorqueTask]  [1x1 TorqueTask]  [1x1 TorqueTask]}
     status: 'queued'
 ```
+
+You can also specify PBS directives as the second argument. Please do this! You might want something like:
+
+```
+>> job = TorqueJob('examplefun', {{'hello', 1}, {'world', 2}, {'!', 3}}, 'walltime=2:00:00,mem=8GB')
+```
+
+to specify that the job will take two hours (if it takes longer, it will be killed) and that it will consume 8 GB of memory.
 
 Get printed output (diary) from task 1:
 

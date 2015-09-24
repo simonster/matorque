@@ -21,7 +21,7 @@ end
 methods
     %% Public interface
     
-    function self = TorqueJob(funcname, args)
+    function self = TorqueJob(funcname, args, directives)
     %TORQUEJOB Create a new job on the cluster
     %   OBJ = TORQUEJOB(FUNCNAME, ARGS) runs FUNCNAME on the cluster,
     %   creating a separate task for each element in the numeric array,
@@ -99,15 +99,30 @@ methods
             end
             matlab_cmd = sprintf('matlab -nodisplay -singleCompThread -r %s -logfile %s >/dev/null 2>&1', ...
                 self.shellesc(cmd), diaryfile);
+            if exist('directives', 'var')
+                matlab_cmd = sprintf('#PBS -l %s\n%s', directives, matlab_cmd);
+            end
             diaryfiles{i} = diaryfile;
             outfiles{i} = outfile;
-            argstrs{i} = sprintf('echo %s | qsub -j oe -o /dev/null 2>&1', ...
-                                 self.shellesc(matlab_cmd));
+            argstrs{i} = sprintf('echo %s | qsub -j oe -o /dev/null -N %s 2>&1', ...
+                                 self.shellesc(matlab_cmd), ...
+                                 self.shellesc(sprintf('%s_%d', funcname, i)));
         end
         cmd = strjoin(argstrs, sprintf('\n'));
         [~, result] = ssh2_command(self.conn, cmd);
         
-        if numel(result) ~= numel(argstrs)
+        % Check for errors
+        err = numel(result) ~= numel(argstrs);
+        for i = 1:length(result)
+            if err
+                break
+            end
+            if ~isempty(find(result{i} == ' ', 1))
+                err = true;
+            end
+        end
+        
+        if err
             error('An error occurred starting jobs:\n\n%s', strjoin(result, '\n'));
         end
         
