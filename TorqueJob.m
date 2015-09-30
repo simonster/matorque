@@ -28,22 +28,15 @@ methods
     %   cell array, or cell array of cell arrays ARGS.
     
         % Validate arguments
+        argstruct = struct();
         if ~iscell(args)
-            if ~isnumeric(args)
-                error('arguments must be a numeric or cell array');
-            end
             args = num2cell(args);
         end
-
-        argstrs = cell(1, length(args));
         for i = 1:numel(args)
-            arg = args{i};
-            if iscell(arg)
-                argstrs{i} = strjoin(cellfun(@self.serializearg, arg, 'UniformOutput', false), ',');
-            else
-                argstrs{i} = self.serializearg(arg);
-                args{i} = {arg};
+            if ~iscell(args{i})
+                args{i} = num2cell(args{i});
             end
+            argstruct.(sprintf('arg%d', i)) = args{i};
         end
         
         % Get password
@@ -81,21 +74,25 @@ methods
             end
             scp_put(self.conn, deps, self.dir, '/', remote_names);
         end
+        putmat(self, 'arguments.mat', argstruct);
         
         % Start jobs
         fprintf('Submitting tasks...\n');
-        diaryfiles = cell(1, length(argstrs));
-        outfiles = cell(1, length(argstrs));
-        for i = 1:length(argstrs)
+        diaryfiles = cell(1, length(args));
+        outfiles = cell(1, length(args));
+        argstrs = cell(1, length(args));
+        for i = 1:numel(args)
             diaryfile = sprintf('%d_diary.txt', i);
-            preamble = sprintf('addpath(fullfile(pwd, ''%s''))', self.dir);
+            preamble = sprintf(['addpath(fullfile(pwd, ''%s'')); ' ...
+                                'load(fullfile(pwd, ''%s/arguments.mat''), ''arg%d'');'], ...
+                               self.dir, self.dir, i);
             if nargout(funcname) == 0
                 outfile = [];
-                cmd = sprintf('%s; %s(%s);', preamble, funcname, argstrs{i});
+                cmd = sprintf('%s; %s(arg%d{:});', preamble, funcname, i);
             else
                 outfile = sprintf('%d_output.mat', i);
-                cmd = sprintf('%s; out = %s(%s); save(''%s/%s'', ''out'');', ...
-                              preamble, funcname, argstrs{i}, self.dir, outfile);
+                cmd = sprintf('%s; out = %s(arg%d{:}); save(''%s/%s'', ''out'');', ...
+                              preamble, funcname, i, self.dir, outfile);
             end
             matlab_cmd = sprintf('matlab -nodisplay -singleCompThread -r %s -logfile %s/%s >/dev/null 2>&1', ...
                 self.shellesc(cmd), self.dir, diaryfile);
@@ -186,11 +183,19 @@ methods
     end
     
     function puttxt(self, fname, txt)
-    %OBJ.PUTTXT(FNAME) Put text in a file on the head node
+    %OBJ.PUTTXT(FNAME, TXT) Put text in a file on the head node
         tmp = tempname;
         fid = fopen(tmp, 'w');
         fwrite(fid, txt);
         fclose(fid);
+        scp_put(self.conn, tmp, self.dir, '/', fname);
+        delete(tmp);
+    end
+    
+    function putmat(self, fname, struct)
+    %OBJ.PUTMAT(FNAME, OBJ) Save a struct to a MAT file on the head node
+        tmp = [tempname '.mat'];
+        save(tmp, '-struct', 'struct');
         scp_put(self.conn, tmp, self.dir, '/', fname);
         delete(tmp);
     end
@@ -247,16 +252,6 @@ methods
 end
 
 methods(Static, Access=private)
-    function out = serializearg(arg)
-    %TORQUEJOB.SERIALIZEARG(ARG) Serialize argument to a string or error
-        if ~isnumeric(arg) && ~ischar(arg)
-            error('argument is not a numeric array or string');
-        elseif ~ismatrix(arg)
-            error('argument is not a scalar, vector, or matrix');
-        end
-        out = mat2str(arg);
-    end
-    
     function [outlogin, outpassword] = credentials(forceauth)
     %TORQUEJOB.CREDENTIALS(FORCEAUTH) Get login and password
         persistent login password;
