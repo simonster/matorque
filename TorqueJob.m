@@ -34,7 +34,11 @@ methods
         end
         for i = 1:numel(args)
             if ~iscell(args{i})
-                args{i} = num2cell(args{i});
+                if isnumeric(args{i}) || islogical(args{i})
+                    args{i} = num2cell(args{i});
+                else
+                    args{i} = {args{i}};
+                end
             end
             argstruct.(sprintf('arg%d', i)) = args{i};
         end
