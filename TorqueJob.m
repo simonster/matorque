@@ -21,23 +21,37 @@ end
 methods
     %% Public interface
     
-    function self = TorqueJob(funcname, args, directives)
+    function self = TorqueJob(funcname, args, directives, deps)
     %TORQUEJOB Create a new job on the cluster
-    %   OBJ = TORQUEJOB(FUNCNAME, ARGS) runs FUNCNAME on the cluster,
-    %   creating a separate task for each element in the numeric array,
-    %   cell array, or cell array of cell arrays ARGS.
+    %   OBJ = TORQUEJOB(FUNCNAME, ARGS, DIRECTIVES, DEPS) runs FUNCNAME
+    %   on the cluster, creating a separate task for each element in the
+    %   numeric array, cell array, or cell array of cell arrays ARGS.
+    %
+    %   DIRECTIVES are Torque directives passed to the scheduler (e.g.
+    %   the amount of time the job should take to run).
+    %
+    %   DEPS determine whether dependencies of the specified function
+    %   should be copied to the server. It defaults to true. If DEPS
+    %   is false, then no dependencies are copied. The function is
+    %   responsible for adding relevant paths using addpath.
     
         % Validate arguments
         argstruct = struct();
-        if ~iscell(args)
-            args = num2cell(args);
+        if isempty(args)
+            args = {};
+        elseif ~iscell(args)
+            if isnumeric(args) || islogical(args)
+                args = num2cell(args);
+            else
+                args = {args};
+            end
         end
         for i = 1:numel(args)
             if ~iscell(args{i})
                 if isnumeric(args{i}) || islogical(args{i})
                     args{i} = num2cell(args{i});
                 else
-                    args{i} = {args{i}};
+                    args{i} = args(i);
                 end
             end
             argstruct.(sprintf('arg%d', i)) = args{i};
@@ -68,15 +82,22 @@ methods
         end
         
         % Copy dependencies to server
-        fprintf('Copying dependencies to server...\n');
-        deps = matlab.codetools.requiredFilesAndProducts(funcname);
-        if ~isempty(deps)
-            remote_names = cell(1, numel(deps));
-            for i = 1:length(deps)
-                [~, name, ext] = fileparts(deps{i});
-                remote_names{i} = [name ext];
+        if ~exist('deps', 'var') || deps
+            fprintf('Copying function and dependencies to server...\n');
+            deps = matlab.codetools.requiredFilesAndProducts(funcname);
+            if ~isempty(deps)
+                remote_names = cell(1, numel(deps));
+                for i = 1:length(deps)
+                    [~, name, ext] = fileparts(deps{i});
+                    remote_names{i} = [name ext];
+                end
+                scp_put(self.conn, deps, self.dir, '/', remote_names);
             end
-            scp_put(self.conn, deps, self.dir, '/', remote_names);
+        else
+            fprintf('Copying function to server...\n');
+            fpath = which(funcname);
+            [~, ffilename, ffileext] = fileparts(fpath);
+            scp_put(self.conn, fpath, self.dir, '/', [ffilename ffileext]);
         end
         putmat(self, 'arguments.mat', argstruct);
         

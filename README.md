@@ -82,3 +82,21 @@ Kill tasks (also available for individual tasks):
 ```
 >> job.kill()
 ```
+
+## Dependency resolution
+
+By default, `TorqueJob` uses the MATLAB built-in `matlab.codetools.requiredFilesAndProducts` to copy the dependencies of the specified function from the local machine to the server. This may be slow or fail if there are a large number of dependencies. To disable this behavior, pass `false` as the fourth argument to `TorqueJob`:
+
+```
+>> job = TorqueJob('examplefun', {{'hello', 1}, {'world', 2}, {'!', 3}}, 'walltime=10:00', false);
+```
+
+If you disable dependency resolution, you must manually add paths to any dependent functions at the start of your function, e.g.:
+
+```matlab
+function myfun()
+addpath('deps');          % Add the directory "deps", located in your home
+                          % directory, to the MATLAB path
+addpath(genpath('deps')); % Add the directory "deps" to the MATLAB path along
+                          % with all subfolders
+```
